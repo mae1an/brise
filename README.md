@@ -29,9 +29,13 @@ My MacBook Pro 16" (2019, i9) runs hot. Existing tools show temperatures *or* co
 - 🔋 **Battery** — charge, health, cycles, temperature, and a **charge limit** (stop at 80 %) to slow down battery wear on a Mac that lives on the charger.
 - 🎛️ **Controls** — volume, brightness, dark mode, lock, display off, eject all disks, empty the trash.
 - 🎬 **Presets** — *Render* (fans max + awake), *Silent* (Low Power Mode), *Normal* (everything back to default).
-- ⌨️ **Command bar** — press **⌥Space** anywhere and type in plain French: `ventilos à fond`, `éveillé 1h`, `volume 30`, `capot fermé`, `batterie 80`, `mode rendu`, `ouvrir Figma`, `quitter Chrome`… ↑/↓ to pick, ↩ to run. Offline, instant, no AI needed.
+- ⌨️ **Command bar** — press **⌥Space** anywhere and type what you want: `fans max`, `awake 1h`, `volume 30`, `lid closed`, `battery 80`, `render mode`, `open Figma`, `quit Chrome`… It understands English and French whatever the UI language. ↑/↓ to pick, ↩ to run. Offline, instant, no AI needed.
 - 🔥 **Who's heating?** — top CPU processes with one-click quit.
 - 🛟 **Safe by default** — quitting Brise hands fans and sleep back to macOS.
+
+## Languages
+
+Brise follows your Mac's language: **English** by default, **French** when French is your preferred language (System Settings → General → Language & Region). Force one with `open Brise.app --args --lang fr`.
 
 ## How it works
 

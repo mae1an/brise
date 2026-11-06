@@ -1,3 +1,4 @@
+import BriseCore
 import Darwin
 import Foundation
 import IOKit
@@ -158,7 +159,7 @@ enum Format {
     }
 
     static func rate(_ bytesPerSecond: Double) -> String {
-        let units = ["o/s", "Ko/s", "Mo/s", "Go/s"]
+        let units = Lang.isFrench ? ["o/s", "Ko/s", "Mo/s", "Go/s"] : ["B/s", "KB/s", "MB/s", "GB/s"]
         var v = bytesPerSecond, i = 0
         while v >= 1000 && i < units.count - 1 { v /= 1000; i += 1 }
         return String(format: i == 0 ? "%.0f %@" : "%.1f %@", v, units[i])

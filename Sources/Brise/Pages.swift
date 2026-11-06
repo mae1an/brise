@@ -59,11 +59,11 @@ struct AdminButton: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Button { monitor.installHelper() } label: {
-                Label(monitor.helperOutdated ? "Mettre à jour le mode admin" : "Activer le mode admin",
+                Label(monitor.helperOutdated ? tr("Update admin mode", "Mettre à jour le mode admin") : tr("Turn on admin mode", "Activer le mode admin"),
                       systemImage: "lock.open").frame(maxWidth: .infinity)
             }
             .controlSize(.large)
-            Text("Ventilos, capot fermé, limite de charge. Mot de passe demandé une seule fois.")
+            Text(tr("Fans, lid closed, charge limit. Asks for your password once.", "Ventilos, capot fermé, limite de charge. Mot de passe demandé une seule fois."))
                 .font(.caption2).foregroundStyle(.secondary)
         }
     }
@@ -77,7 +77,7 @@ struct TemperatureCard: View {
     @State private var showAll = true
 
     var body: some View {
-        Card(title: "Températures", icon: "thermometer.medium") {
+        Card(title: tr("Temperatures", "Températures"), icon: "thermometer.medium") {
             HStack(alignment: .firstTextBaseline, spacing: 18) {
                 bigValue("CPU", monitor.cpuTemp)
                 bigValue("GPU", monitor.gpuTemp)
@@ -99,7 +99,7 @@ struct TemperatureCard: View {
                 .chartPlotStyle { $0.clipped() }
                 .frame(height: expanded ? 90 : 60)
             }
-            DisclosureGroup("Tous les capteurs (\(monitor.sensors.count))", isExpanded: $showAll) {
+            DisclosureGroup(tr("All sensors (\(monitor.sensors.count))", "Tous les capteurs (\(monitor.sensors.count))"), isExpanded: $showAll) {
                 ScrollView {
                     VStack(spacing: 3) {
                         ForEach(monitor.sensors.sorted { $0.value > $1.value }) { s in
@@ -143,13 +143,13 @@ struct FansCard: View {
 
     var body: some View {
         @Bindable var monitor = monitor
-        Card(title: "Ventilateurs", icon: "fan") {
+        Card(title: tr("Fans", "Ventilateurs"), icon: "fan") {
             ForEach(monitor.fans) { fan in
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
-                        Text(monitor.fans.count == 2 ? (fan.id == 0 ? "Gauche" : "Droite") : "Ventilo \(fan.id + 1)")
+                        Text(monitor.fans.count == 2 ? (fan.id == 0 ? tr("Left", "Gauche") : tr("Right", "Droite")) : tr("Fan \(fan.id + 1)", "Ventilo \(fan.id + 1)"))
                         Spacer()
-                        Text("\(Int(fan.current)) tr/min").monospacedDigit()
+                        Text(tr("\(Int(fan.current)) rpm", "\(Int(fan.current)) tr/min")).monospacedDigit()
                     }
                     .font(.callout)
                     ProgressView(value: fan.level).tint(fan.forced ? .orange : .accentColor)
@@ -166,15 +166,15 @@ struct FansCard: View {
                         if !editing { monitor.applyCustomLevel() }
                     }
                     if let fan = monitor.fans.first {
-                        Text("Cible : \(monitor.customRPM(for: fan)) tr/min")
+                        Text(tr("Target: \(monitor.customRPM(for: fan)) rpm", "Cible : \(monitor.customRPM(for: fan)) tr/min"))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                SwitchRow("Boost auto au-delà de \(Int(monitor.boostThreshold))°C", isOn: $monitor.autoBoost)
+                SwitchRow(tr("Auto boost above \(Int(monitor.boostThreshold))°C", "Boost auto au-delà de \(Int(monitor.boostThreshold))°C"), isOn: $monitor.autoBoost)
                 if monitor.autoBoost {
                     Slider(value: $monitor.boostThreshold, in: 70...100, step: 1)
                 }
-                SwitchRow("Tr/min dans la barre des menus", isOn: $monitor.showRPMInMenuBar)
+                SwitchRow(tr("Show rpm in the menu bar", "Tr/min dans la barre des menus"), isOn: $monitor.showRPMInMenuBar)
             } else {
                 AdminButton()
             }
@@ -186,16 +186,16 @@ struct AutomationsCard: View {
     @Environment(Monitor.self) private var monitor
 
     var body: some View {
-        Card(title: "À fond automatiquement quand…", icon: "wand.and.stars") {
+        Card(title: tr("Full blast automatically when…", "À fond automatiquement quand…"), icon: "wand.and.stars") {
             if monitor.heavyApps.isEmpty {
-                Text("Aucune app de rendu détectée.").font(.caption).foregroundStyle(.secondary)
+                Text(tr("No render app found.", "Aucune app de rendu détectée.")).font(.caption).foregroundStyle(.secondary)
             }
             ForEach(monitor.heavyApps) { app in
                 HStack(spacing: 8) {
                     if let icon = app.icon { Image(nsImage: icon) }
                     Text(app.name)
                     if monitor.runningHeavyApp == app.name {
-                        Text("ouvert").font(.caption2.bold()).foregroundStyle(.orange)
+                        Text(tr("open", "ouvert")).font(.caption2.bold()).foregroundStyle(.orange)
                     }
                     Spacer()
                     Toggle(app.name, isOn: Binding(
@@ -204,7 +204,7 @@ struct AutomationsCard: View {
                 }
                 .font(.callout)
             }
-            Text("Les ventilos repassent dans leur mode habituel quand l'app se ferme.")
+            Text(tr("Fans go back to their usual mode when the app quits.", "Les ventilos repassent dans leur mode habituel quand l'app se ferme."))
                 .font(.caption2).foregroundStyle(.secondary)
         }
     }
@@ -216,14 +216,14 @@ struct SystemCard: View {
     @Environment(Monitor.self) private var monitor
 
     var body: some View {
-        Card(title: "Système", icon: "cpu") {
+        Card(title: tr("System", "Système"), icon: "cpu") {
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 6) {
-                row("Processeur", value: monitor.cpuLoad.map { "\(Int($0 * 100)) %" }, fraction: monitor.cpuLoad)
-                row("Mémoire",
+                row(tr("CPU", "Processeur"), value: monitor.cpuLoad.map { "\(Int($0 * 100)) %" }, fraction: monitor.cpuLoad)
+                row(tr("Memory", "Mémoire"),
                     value: monitor.memory.map { "\(Format.bytes(Double($0.used))) / \(Format.bytes(Double($0.total)))" },
                     fraction: monitor.memory?.fraction)
                 GridRow {
-                    Text("Réseau").foregroundStyle(.secondary)
+                    Text(tr("Network", "Réseau")).foregroundStyle(.secondary)
                     Text(monitor.network.map { "↓ \(Format.rate($0.down))   ↑ \(Format.rate($0.up))" } ?? "—")
                         .monospacedDigit()
                         .gridCellColumns(2)
@@ -232,7 +232,7 @@ struct SystemCard: View {
             .font(.callout)
             if monitor.helperInstalled {
                 Button { monitor.purgeMemory() } label: {
-                    Label("Libérer la mémoire inactive", systemImage: "memorychip")
+                    Label(tr("Free inactive memory", "Libérer la mémoire inactive"), systemImage: "memorychip")
                 }
                 .controlSize(.small)
             }
@@ -253,7 +253,7 @@ struct ProcessesCard: View {
     @State private var hovered: Int32?
 
     var body: some View {
-        Card(title: "Qui chauffe ?", icon: "flame") {
+        Card(title: tr("What's heating?", "Qui chauffe ?"), icon: "flame") {
             ForEach(monitor.topProcesses) { p in
                 HStack {
                     Text(p.name).lineLimit(1)
@@ -263,7 +263,7 @@ struct ProcessesCard: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(.secondary)
                         .opacity(hovered == p.pid ? 1 : 0)
-                        .help("Quitter \(p.name)")
+                        .help(tr("Quit \(p.name)", "Quitter \(p.name)"))
                 }
                 .font(.callout)
                 .contentShape(Rectangle())
@@ -280,32 +280,32 @@ struct BatteryCard: View {
     @State private var limitDraft: Double = 80
 
     var body: some View {
-        Card(title: "Batterie", icon: "battery.75") {
+        Card(title: tr("Battery", "Batterie"), icon: "battery.75") {
             if let b = monitor.battery {
                 HStack(alignment: .firstTextBaseline) {
                     Text("\(b.percent) %").font(.system(size: 30, weight: .semibold, design: .rounded))
-                    Text(b.charging ? "en charge" : b.pluggedIn ? "sur secteur" : "sur batterie")
+                    Text(b.charging ? tr("charging", "en charge") : b.pluggedIn ? tr("plugged in", "sur secteur") : tr("on battery", "sur batterie"))
                         .foregroundStyle(.secondary)
                 }
                 Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
-                    if let h = b.health { info("Santé", "\(Int(h * 100)) %", h < 0.8 ? .orange : .primary) }
+                    if let h = b.health { info(tr("Health", "Santé"), "\(Int(h * 100)) %", h < 0.8 ? .orange : .primary) }
                     if let c = b.cycles { info("Cycles", "\(c)", .primary) }
-                    if let t = monitor.batteryTemp { info("Température", "\(Int(t.rounded()))°", tempColor(t)) }
+                    if let t = monitor.batteryTemp { info(tr("Temperature", "Température"), "\(Int(t.rounded()))°", tempColor(t)) }
                 }
                 .font(.callout)
             }
         }
-        Card(title: "Limite de charge", icon: "bolt.badge.checkmark") {
+        Card(title: tr("Charge limit", "Limite de charge"), icon: "bolt.badge.checkmark") {
             if monitor.chargeLimit == nil {
-                Text("Ce Mac ne permet pas de limiter la charge.").font(.caption).foregroundStyle(.secondary)
+                Text(tr("This Mac doesn't support a charge limit.", "Ce Mac ne permet pas de limiter la charge.")).font(.caption).foregroundStyle(.secondary)
             } else if monitor.helperInstalled {
-                SwitchRow("Arrêter la charge à \(Int(limitDraft)) %", isOn: Binding(
+                SwitchRow(tr("Stop charging at \(Int(limitDraft)) %", "Arrêter la charge à \(Int(limitDraft)) %"), isOn: Binding(
                     get: { (monitor.chargeLimit ?? 100) < 100 },
                     set: { monitor.setChargeLimit($0 ? Int(limitDraft) : 100) }))
                 Slider(value: $limitDraft, in: 50...95, step: 5) { editing in
                     if !editing, (monitor.chargeLimit ?? 100) < 100 { monitor.setChargeLimit(Int(limitDraft)) }
                 }
-                Text("Rester branché à 100 % use la batterie. 80 % est le bon compromis si ton Mac vit sur secteur.")
+                Text(tr("Sitting at 100 % wears the battery out. 80 % is the sweet spot if your Mac lives on the charger.", "Rester branché à 100 % use la batterie. 80 % est le bon compromis si ton Mac vit sur secteur."))
                     .font(.caption2).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
@@ -332,35 +332,35 @@ struct ControlsCard: View {
     @State private var confirmTrash = false
 
     var body: some View {
-        Card(title: "Son & écran", icon: "speaker.wave.2") {
+        Card(title: tr("Sound & display", "Son & écran"), icon: "speaker.wave.2") {
             sliderRow("speaker.wave.2.fill", value: Binding(
                 get: { monitor.volume / 100 }, set: { monitor.setVolume($0 * 100) }))
             if let b = monitor.brightness {
                 sliderRow("sun.max.fill", value: Binding(
                     get: { b }, set: { monitor.setBrightness($0) }))
             }
-            SwitchRow("Mode sombre", isOn: Binding(
+            SwitchRow(tr("Dark mode", "Mode sombre"), isOn: Binding(
                 get: { monitor.darkMode }, set: { monitor.setDarkMode($0) }))
             if monitor.helperInstalled {
-                SwitchRow("Économie d'énergie", isOn: Binding(
+                SwitchRow(tr("Low Power Mode", "Économie d'énergie"), isOn: Binding(
                     get: { monitor.lowPowerMode }, set: { monitor.setLowPowerMode($0) }))
             }
         }
         Card(title: "Actions", icon: "bolt") {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                action("Verrouiller", "lock.fill") { MacControls.lockScreen() }
-                action("Écran noir", "display") { MacControls.sleepDisplay() }
-                action("Éjecter", "eject.fill") { monitor.ejectDisks() }
-                action("Corbeille", "trash.fill") { confirmTrash = true }
+                action(tr("Lock", "Verrouiller"), "lock.fill") { MacControls.lockScreen() }
+                action(tr("Display off", "Écran noir"), "display") { MacControls.sleepDisplay() }
+                action(tr("Eject", "Éjecter"), "eject.fill") { monitor.ejectDisks() }
+                action(tr("Trash", "Corbeille"), "trash.fill") { confirmTrash = true }
             }
         }
-        .confirmationDialog("Vider la corbeille ?", isPresented: $confirmTrash) {
-            Button("Vider définitivement", role: .destructive) { monitor.emptyTrash() }
+        .confirmationDialog(tr("Empty the Trash?", "Vider la corbeille ?"), isPresented: $confirmTrash) {
+            Button(tr("Empty permanently", "Vider définitivement"), role: .destructive) { monitor.emptyTrash() }
         } message: {
-            Text("Les fichiers seront supprimés pour de bon.")
+            Text(tr("Files will be deleted for good.", "Les fichiers seront supprimés pour de bon."))
         }
         Card(title: "Brise", icon: "wind") {
-            SwitchRow("Lancer au démarrage", isOn: Binding(
+            SwitchRow(tr("Launch at login", "Lancer au démarrage"), isOn: Binding(
                 get: { monitor.launchAtLogin }, set: { monitor.setLaunchAtLogin($0) }))
         }
         .onAppear { monitor.refreshControls() }

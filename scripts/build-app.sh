@@ -14,6 +14,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/Brise" "$BIN/brise-helper" "$APP/Contents/MacOS/"
 cp Resources/Info.plist "$APP/Contents/"
+cp -R Resources/*.lproj "$APP/Contents/Resources/"
 [[ -f Resources/AppIcon.icns ]] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 
 codesign --force --sign - "$APP/Contents/MacOS/brise-helper"

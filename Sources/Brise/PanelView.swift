@@ -1,3 +1,4 @@
+import BriseCore
 import SwiftUI
 
 enum Page: String, Identifiable {
@@ -5,11 +6,11 @@ enum Page: String, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .temperatures: "Températures"
-        case .fans: "Ventilateurs"
-        case .system: "Système"
-        case .battery: "Batterie"
-        case .controls: "Contrôles"
+        case .temperatures: tr("Temperatures", "Températures")
+        case .fans: tr("Fans", "Ventilateurs")
+        case .system: tr("System", "Système")
+        case .battery: tr("Battery", "Batterie")
+        case .controls: tr("Controls", "Contrôles")
         }
     }
 }
@@ -57,52 +58,52 @@ private struct HomeView: View {
             header
             CommandBarView(compact: true)
             LazyVGrid(columns: columns, spacing: 10) {
-                Tile(icon: "thermometer.medium", title: "Températures",
+                Tile(icon: "thermometer.medium", title: tr("Temperatures", "Températures"),
                      value: monitor.cpuTemp.map { "\(Int($0.rounded()))°" } ?? "—",
                      detail: monitor.gpuTemp.map { "GPU \(Int($0.rounded()))°" } ?? "CPU",
                      tint: tempColor(monitor.cpuTemp)) { open(.temperatures) }
 
-                Tile(icon: monitor.fansForced ? "fan.fill" : "fan", title: "Ventilateurs",
+                Tile(icon: monitor.fansForced ? "fan.fill" : "fan", title: tr("Fans", "Ventilateurs"),
                      value: monitor.fans.first.map { "\(Int($0.current))" } ?? "—",
                      detail: fanDetail, tint: monitor.fansForced ? .orange : .blue,
                      active: monitor.fansForced) { open(.fans) }
 
-                Tile(icon: "power", title: "Capot fermé",
-                     value: monitor.lidClosedAwake ? "Allumé" : "Veille",
-                     detail: monitor.lidClosedAwake ? "Le Mac continue de tourner" : "Comportement normal",
+                Tile(icon: "power", title: tr("Lid closed", "Capot fermé"),
+                     value: monitor.lidClosedAwake ? tr("On", "Allumé") : tr("Sleeps", "Veille"),
+                     detail: monitor.lidClosedAwake ? tr("Mac keeps running", "Le Mac continue de tourner") : tr("Normal behaviour", "Comportement normal"),
                      tint: .green, active: monitor.lidClosedAwake, isToggle: true) {
                     if monitor.helperInstalled { monitor.setLidClosedAwake(!monitor.lidClosedAwake) }
                     else { monitor.installHelper(); if monitor.helperInstalled { monitor.setLidClosedAwake(true) } }
                 }
-                .help("Empêche la mise en veille même capot fermé : un agent IA, un rendu ou un téléchargement continue.")
+                .help(tr("Prevents sleep even with the lid closed: an AI agent, a render or a download keeps going.", "Empêche la mise en veille même capot fermé : un agent IA, un rendu ou un téléchargement continue."))
 
-                Tile(icon: monitor.keepAwake ? "cup.and.saucer.fill" : "cup.and.saucer", title: "Éveillé",
-                     value: monitor.keepAwake ? "Actif" : "Off",
+                Tile(icon: monitor.keepAwake ? "cup.and.saucer.fill" : "cup.and.saucer", title: tr("Awake", "Éveillé"),
+                     value: monitor.keepAwake ? tr("On", "Actif") : "Off",
                      detail: awakeDetail, tint: .brown, active: monitor.keepAwake, isToggle: true) {
                     monitor.setKeepAwake(!monitor.keepAwake)
                 }
                 .contextMenu {
                     ForEach([30, 60, 120, 240], id: \.self) { m in
-                        Button("Pendant \(CommandCatalog.duration(m))") { monitor.setKeepAwake(true, minutes: m) }
+                        Button(tr("For \(CommandCatalog.duration(m))", "Pendant \(CommandCatalog.duration(m))")) { monitor.setKeepAwake(true, minutes: m) }
                     }
-                    Button("Jusqu'à ce que je l'arrête") { monitor.setKeepAwake(true) }
+                    Button(tr("Until I stop it", "Jusqu'à ce que je l'arrête")) { monitor.setKeepAwake(true) }
                 }
 
-                Tile(icon: batteryIcon, title: "Batterie",
+                Tile(icon: batteryIcon, title: tr("Battery", "Batterie"),
                      value: monitor.battery.map { "\($0.percent) %" } ?? "—",
                      detail: batteryDetail, tint: .green) { open(.battery) }
 
-                Tile(icon: "slider.horizontal.3", title: "Contrôles",
-                     value: "\(Int(monitor.volume)) %", detail: "Volume · écran · disques",
+                Tile(icon: "slider.horizontal.3", title: tr("Controls", "Contrôles"),
+                     value: "\(Int(monitor.volume)) %", detail: tr("Volume · display · disks", "Volume · écran · disques"),
                      tint: .purple) { open(.controls) }
 
-                Tile(icon: "cpu", title: "Système",
+                Tile(icon: "cpu", title: tr("System", "Système"),
                      value: monitor.cpuLoad.map { "\(Int($0 * 100)) %" } ?? "—",
                      detail: monitor.memory.map { "RAM \(Format.bytes(Double($0.used)))" } ?? "",
                      tint: .indigo) { open(.system) }
 
-                Tile(icon: "command", title: "Commande",
-                     value: CommandPanel.shared.shortcutLabel, detail: "Barre de commande partout",
+                Tile(icon: "command", title: tr("Command", "Commande"),
+                     value: CommandPanel.shared.shortcutLabel, detail: tr("Command bar, anywhere", "Barre de commande partout"),
                      tint: .gray) { CommandPanel.shared.show() }
             }
             presets
@@ -141,14 +142,14 @@ private struct HomeView: View {
     }
 
     private var fanDetail: String {
-        if let reason = monitor.fanOverride { return "À fond · \(reason)" }
-        return "tr/min · \(monitor.fanMode.label)"
+        if let reason = monitor.fanOverride { return tr("Full blast · \(reason)", "À fond · \(reason)") }
+        return tr("rpm · \(monitor.fanMode.label)", "tr/min · \(monitor.fanMode.label)")
     }
 
     private var awakeDetail: String {
-        guard monitor.keepAwake else { return "Clic droit : durée" }
-        guard let until = monitor.keepAwakeUntil else { return "Jusqu'à arrêt" }
-        return "Jusqu'à \(until.formatted(date: .omitted, time: .shortened))"
+        guard monitor.keepAwake else { return tr("Right-click: duration", "Clic droit : durée") }
+        guard let until = monitor.keepAwakeUntil else { return tr("Until stopped", "Jusqu'à arrêt") }
+        return tr("Until \(until.formatted(date: .omitted, time: .shortened))", "Jusqu'à \(until.formatted(date: .omitted, time: .shortened))")
     }
 
     private var batteryIcon: String {
@@ -158,8 +159,8 @@ private struct HomeView: View {
     }
 
     private var batteryDetail: String {
-        if let limit = monitor.chargeLimit, limit < 100 { return "Limite \(limit) %" }
-        if let h = monitor.battery?.health { return "Santé \(Int(h * 100)) %" }
+        if let limit = monitor.chargeLimit, limit < 100 { return tr("Limit \(limit) %", "Limite \(limit) %") }
+        if let h = monitor.battery?.health { return tr("Health \(Int(h * 100)) %", "Santé \(Int(h * 100)) %") }
         return ""
     }
 }
@@ -227,7 +228,7 @@ private struct DetailHeader: View {
     var body: some View {
         HStack {
             Button(action: back) {
-                Label("Accueil", systemImage: "chevron.left").font(.callout)
+                Label(tr("Home", "Accueil"), systemImage: "chevron.left").font(.callout)
             }
             .buttonStyle(.plain)
             .foregroundStyle(.tint)
@@ -260,7 +261,7 @@ private struct StatusLine: View {
             }
             HStack {
                 Spacer()
-                Button("Quitter Brise") { NSApp.terminate(nil) }
+                Button(tr("Quit Brise", "Quitter Brise")) { NSApp.terminate(nil) }
                     .keyboardShortcut("q")
                     .controlSize(.small)
             }

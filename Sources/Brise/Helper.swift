@@ -1,3 +1,4 @@
+import BriseCore
 import AppKit
 import Foundation
 
@@ -28,7 +29,7 @@ enum Helper {
     /// Copies the helper out of the app bundle and makes it setuid root (asks for the admin password once).
     static func install() throws {
         guard let source = bundledPath, FileManager.default.fileExists(atPath: source) else {
-            throw HelperError.message("brise-helper introuvable dans l'app")
+            throw HelperError.message(tr("brise-helper is missing from the app", "brise-helper introuvable dans l'app"))
         }
         let q = { (s: String) in "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
         let shell = [
@@ -38,11 +39,11 @@ enum Helper {
             "chmod 4755 \(q(installedPath))",
         ].joined(separator: " && ")
         let escaped = shell.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
-        let script = "do shell script \"\(escaped)\" with administrator privileges with prompt \"Brise a besoin de ton mot de passe une seule fois pour pouvoir piloter les ventilateurs.\""
+        let script = "do shell script \"\(escaped)\" with administrator privileges with prompt \"\(tr("Brise needs your password once to control fans, sleep and charging.", "Brise a besoin de ton mot de passe une seule fois pour piloter les ventilos, la veille et la charge."))\""
         var error: NSDictionary?
         NSAppleScript(source: script)?.executeAndReturnError(&error)
         if let error {
-            throw HelperError.message(error[NSAppleScript.errorMessage] as? String ?? "installation annulée")
+            throw HelperError.message(error[NSAppleScript.errorMessage] as? String ?? tr("installation cancelled", "installation annulée"))
         }
     }
 
@@ -51,6 +52,7 @@ enum Helper {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: installedPath)
         p.arguments = args
+        p.environment = ProcessInfo.processInfo.environment.merging(["BRISE_LANG": Lang.code]) { $1 }
         let out = Pipe(), err = Pipe()
         p.standardOutput = out
         p.standardError = err
@@ -58,7 +60,7 @@ enum Helper {
         p.waitUntilExit()
         if p.terminationStatus != 0 {
             let message = String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            throw HelperError.message(message.isEmpty ? "erreur \(p.terminationStatus)" : message)
+            throw HelperError.message(message.isEmpty ? tr("error \(p.terminationStatus)", "erreur \(p.terminationStatus)") : message)
         }
         return String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
     }

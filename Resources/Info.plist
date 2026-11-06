@@ -12,7 +12,9 @@
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
-    <key>NSAppleEventsUsageDescription</key><string>Brise pilote le mode sombre et la corbeille à ta demande.</string>
+    <key>NSAppleEventsUsageDescription</key><string>Brise switches dark mode and empties the Trash when you ask it to.</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleLocalizations</key><array><string>en</string><string>fr</string></array>
     <key>NSHumanReadableCopyright</key><string>MIT License</string>
 </dict>
 </plist>

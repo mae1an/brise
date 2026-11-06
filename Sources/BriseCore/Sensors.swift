@@ -11,18 +11,18 @@ public struct TempSensor: Identifiable, Equatable, Sendable {
 public final class TemperatureReader {
     /// Human-readable names for keys commonly found on Intel and Apple Silicon Macs.
     public static let knownNames: [String: String] = [
-        "TC0P": "CPU (proximité)", "TC0D": "CPU (die)", "TC0E": "CPU (virtuel)", "TC0F": "CPU (filtré)",
-        "TCXC": "CPU (PECI)", "TCSA": "CPU (System Agent)", "TCGC": "GPU intégré",
-        "TC1C": "Cœur 1", "TC2C": "Cœur 2", "TC3C": "Cœur 3", "TC4C": "Cœur 4",
-        "TC5C": "Cœur 5", "TC6C": "Cœur 6", "TC7C": "Cœur 7", "TC8C": "Cœur 8",
-        "TG0P": "GPU (proximité)", "TG0D": "GPU (die)", "TGDD": "GPU dédié (die)", "TG0T": "GPU",
-        "TM0P": "Mémoire", "TPCD": "Chipset (PCH)", "TA0P": "Air ambiant", "TA0V": "Air ambiant",
-        "TB0T": "Batterie", "TB1T": "Batterie 1", "TB2T": "Batterie 2",
-        "TW0P": "Wi-Fi", "Ts0P": "Repose-poignets", "Ts1P": "Repose-poignets 2",
-        "TH0a": "SSD", "TH0b": "SSD 2", "TH0x": "SSD (max)", "Th1H": "Caloduc",
-        "TCMX": "CPU (max)", "TG1P": "GPU (proximité 2)", "Th2H": "Caloduc 2", "Tm0P": "Carte mère",
-        "TaLC": "Air gauche", "TaRC": "Air droite", "Tp01": "P-core 1", "Tp05": "P-core 2", "Tp09": "P-core 3", "Tp0D": "P-core 4",
-        "Tp0T": "E-core 1", "Tp0X": "E-core 2", "Tg05": "GPU 1", "Tg0D": "GPU 2",
+        "TC0P": tr("CPU (proximity)", "CPU (proximité)"), "TC0D": tr("CPU (die)", "CPU (die)"), "TC0E": tr("CPU (virtual)", "CPU (virtuel)"), "TC0F": tr("CPU (filtered)", "CPU (filtré)"),
+        "TCXC": tr("CPU (PECI)", "CPU (PECI)"), "TCSA": tr("CPU (System Agent)", "CPU (System Agent)"), "TCGC": tr("Integrated GPU", "GPU intégré"),
+        "TC1C": tr("Core 1", "Cœur 1"), "TC2C": tr("Core 2", "Cœur 2"), "TC3C": tr("Core 3", "Cœur 3"), "TC4C": tr("Core 4", "Cœur 4"),
+        "TC5C": tr("Core 5", "Cœur 5"), "TC6C": tr("Core 6", "Cœur 6"), "TC7C": tr("Core 7", "Cœur 7"), "TC8C": tr("Core 8", "Cœur 8"),
+        "TG0P": tr("GPU (proximity)", "GPU (proximité)"), "TG0D": tr("GPU (die)", "GPU (die)"), "TGDD": tr("Dedicated GPU (die)", "GPU dédié (die)"), "TG0T": tr("GPU", "GPU"),
+        "TM0P": tr("Memory", "Mémoire"), "TPCD": tr("Chipset (PCH)", "Chipset (PCH)"), "TA0P": tr("Ambient air", "Air ambiant"), "TA0V": tr("Ambient air", "Air ambiant"),
+        "TB0T": tr("Battery", "Batterie"), "TB1T": tr("Battery 1", "Batterie 1"), "TB2T": tr("Battery 2", "Batterie 2"),
+        "TW0P": tr("Wi-Fi", "Wi-Fi"), "Ts0P": tr("Palm rest", "Repose-poignets"), "Ts1P": tr("Palm rest 2", "Repose-poignets 2"),
+        "TH0a": tr("SSD", "SSD"), "TH0b": tr("SSD 2", "SSD 2"), "TH0x": tr("SSD (max)", "SSD (max)"), "Th1H": tr("Heat pipe", "Caloduc"),
+        "TCMX": tr("CPU (max)", "CPU (max)"), "TG1P": tr("GPU (proximity 2)", "GPU (proximité 2)"), "Th2H": tr("Heat pipe 2", "Caloduc 2"), "Tm0P": tr("Logic board", "Carte mère"),
+        "TaLC": tr("Left air", "Air gauche"), "TaRC": tr("Right air", "Air droite"), "Tp01": tr("P-core 1", "P-core 1"), "Tp05": tr("P-core 2", "P-core 2"), "Tp09": tr("P-core 3", "P-core 3"), "Tp0D": tr("P-core 4", "P-core 4"),
+        "Tp0T": tr("E-core 1", "E-core 1"), "Tp0X": tr("E-core 2", "E-core 2"), "Tg05": tr("GPU 1", "GPU 1"), "Tg0D": tr("GPU 2", "GPU 2"),
     ]
 
     public private(set) var keys: [String] = []

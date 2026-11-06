@@ -11,8 +11,8 @@ enum FanMode: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .auto: "Auto"
-        case .max: "À fond"
-        case .custom: "Perso"
+        case .max: tr("Max", "À fond")
+        case .custom: tr("Custom", "Perso")
         }
     }
 }
@@ -22,8 +22,8 @@ enum Preset: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .render: "Rendu"
-        case .silent: "Silence"
+        case .render: tr("Render", "Rendu")
+        case .silent: tr("Silent", "Silence")
         case .normal: "Normal"
         }
     }
@@ -166,7 +166,7 @@ final class Monitor {
     var menuBarTitle: String {
         var parts: [String] = []
         if let cpuTemp { parts.append("\(Int(cpuTemp.rounded()))°") }
-        if showRPMInMenuBar, let fan = fans.first { parts.append("\(Int(fan.current)) tr/min") }
+        if showRPMInMenuBar, let fan = fans.first { parts.append(tr("\(Int(fan.current)) rpm", "\(Int(fan.current)) tr/min")) }
         return parts.isEmpty ? "Brise" : parts.joined(separator: " · ")
     }
 
@@ -179,7 +179,7 @@ final class Monitor {
             try Helper.install()
             helperInstalled = Helper.isInstalled
             helperOutdated = Helper.isOutdated
-            if !helperInstalled { lastError = "Le helper ne répond pas après l'installation." }
+            if !helperInstalled { lastError = tr("The helper doesn't respond after installation.", "Le helper ne répond pas après l'installation.") }
         } catch {
             lastError = error.localizedDescription
         }
@@ -188,7 +188,7 @@ final class Monitor {
     @discardableResult
     private func runHelper(_ args: [String]) -> Bool {
         guard helperInstalled else {
-            lastError = helperOutdated ? "Mets à jour le helper (bouton dans Ventilateurs)." : "Active d'abord le mode admin (Ventilateurs)."
+            lastError = helperOutdated ? tr("Update admin mode first (Fans page).", "Mets à jour le mode admin (page Ventilateurs).") : tr("Turn on admin mode first (Fans page).", "Active d'abord le mode admin (page Ventilateurs).")
             return false
         }
         do { try Helper.run(args); lastError = nil; return true } catch {
@@ -275,7 +275,7 @@ final class Monitor {
         let r = IOPMAssertionCreateWithName(
             kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
             IOPMAssertionLevel(kIOPMAssertionLevelOn),
-            "Brise — garder le Mac éveillé" as CFString, &awakeAssertion)
+            "Brise — keep the Mac awake" as CFString, &awakeAssertion)
         guard r == kIOReturnSuccess else { return }
         keepAwake = true
         keepAwakeUntil = minutes.map { Date.now.addingTimeInterval(Double($0) * 60) }
@@ -284,7 +284,7 @@ final class Monitor {
     func setLidClosedAwake(_ on: Bool) {
         if runHelper(["nosleep", on ? "on" : "off"]) {
             lidClosedAwake = MacControls.isSleepDisabled()
-            if on { toast = "Le Mac reste allumé capot fermé" }
+            if on { toast = tr("Mac stays on with the lid closed", "Le Mac reste allumé capot fermé") }
         }
     }
 
@@ -292,7 +292,7 @@ final class Monitor {
     private func protectBatteryWhileLidClosed() {
         guard lidClosedAwake, let b = battery, !b.pluggedIn, b.percent <= 15 else { return }
         setLidClosedAwake(false)
-        lastError = "Batterie faible : veille capot fermé réactivée."
+        lastError = tr("Low battery: lid-closed sleep turned back on.", "Batterie faible : veille capot fermé réactivée.")
     }
 
     func setChargeLimit(_ pct: Int) {
@@ -310,13 +310,13 @@ final class Monitor {
         do {
             if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
         } catch {
-            lastError = "Lancement au démarrage : \(error.localizedDescription)"
+            lastError = tr("Launch at login: \(error.localizedDescription)", "Lancement au démarrage : \(error.localizedDescription)")
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
     func purgeMemory() {
-        if runHelper(["purge"]) { toast = "Mémoire inactive libérée" }
+        if runHelper(["purge"]) { toast = tr("Inactive memory freed", "Mémoire inactive libérée") }
     }
 
     // MARK: - Scenes
@@ -343,7 +343,7 @@ final class Monitor {
             if lowPowerMode { setLowPowerMode(false) }
             if lidClosedAwake { setLidClosedAwake(false) }
         }
-        toast = "Mode \(preset.label)"
+        toast = tr("\(preset.label) mode", "Mode \(preset.label)")
     }
 
     // MARK: - Mac controls
@@ -360,24 +360,25 @@ final class Monitor {
 
     func setDarkMode(_ dark: Bool) {
         if MacControls.setDarkMode(dark) { darkMode = dark } else {
-            lastError = "Autorise Brise à contrôler « System Events » (Réglages → Confidentialité → Automatisation)."
+            lastError = tr("Allow Brise to control “System Events” (Settings → Privacy → Automation).", "Autorise Brise à contrôler « System Events » (Réglages → Confidentialité → Automatisation).")
         }
     }
 
     func ejectDisks() {
         let n = MacControls.ejectAll()
-        toast = n == 0 ? "Aucun disque à éjecter" : "\(n) disque\(n > 1 ? "s" : "") éjecté\(n > 1 ? "s" : "")"
+        toast = n == 0 ? tr("No disk to eject", "Aucun disque à éjecter")
+            : tr("\(n) disk\(n > 1 ? "s" : "") ejected", "\(n) disque\(n > 1 ? "s" : "") éjecté\(n > 1 ? "s" : "")")
     }
 
     func emptyTrash() {
-        if MacControls.emptyTrash() { toast = "Corbeille vidée" } else {
-            lastError = "Autorise Brise à contrôler le Finder (Réglages → Confidentialité → Automatisation)."
+        if MacControls.emptyTrash() { toast = tr("Trash emptied", "Corbeille vidée") } else {
+            lastError = tr("Allow Brise to control Finder (Settings → Privacy → Automation).", "Autorise Brise à contrôler le Finder (Réglages → Confidentialité → Automatisation).")
         }
     }
 
     func terminate(_ process: ProcessUsage) {
         if kill(process.pid, SIGTERM) != 0 {
-            lastError = "Impossible de quitter \(process.name) (processus système ?)"
+            lastError = tr("Can't quit \(process.name) (system process?)", "Impossible de quitter \(process.name) (processus système ?)")
         }
     }
 }

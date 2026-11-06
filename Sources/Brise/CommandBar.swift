@@ -1,3 +1,4 @@
+import BriseCore
 import AppKit
 import Carbon.HIToolbox
 import SwiftUI
@@ -20,7 +21,7 @@ struct CommandBarView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Image(systemName: "sparkle.magnifyingglass").foregroundStyle(.secondary)
-                TextField("Que veux-tu faire ? « ventilos à fond », « volume 30 »…", text: $text)
+                TextField(tr("What do you want to do? “fans max”, “volume 30”…", "Que veux-tu faire ? « ventilos à fond », « volume 30 »…"), text: $text)
                     .textFieldStyle(.plain)
                     .font(compact ? .callout : .title3)
                     .focused($focused)
@@ -61,7 +62,7 @@ struct CommandBarView: View {
                         .font(compact ? .callout : .body)
                     }
                     if suggestions.isEmpty {
-                        Text("Aucune commande ne correspond.").font(.caption).foregroundStyle(.secondary)
+                        Text(tr("No matching command.", "Aucune commande ne correspond.")).font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -98,7 +99,7 @@ final class CommandPanel {
     static let shared = CommandPanel()
     private var panel: NSPanel?
     private var hotKey: EventHotKeyRef?
-    private(set) var shortcutLabel = "⌥Espace"
+    private(set) var shortcutLabel = tr("⌥Space", "⌥Espace")
 
     func registerHotKey() {
         var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))

@@ -16,9 +16,9 @@ public enum SMC {
 
         public var description: String {
             switch self {
-            case .unsupportedType(let t): return "type SMC non géré : \(t)"
-            case .keyNotFound(let k): return "clé SMC introuvable : \(k)"
-            case .failed(let k, let code): return "écriture de \(k) refusée (code \(code)) — root requis ?"
+            case .unsupportedType(let t): return tr("unsupported SMC type: \(t)", "type SMC non géré : \(t)")
+            case .keyNotFound(let k): return tr("SMC key not found: \(k)", "clé SMC introuvable : \(k)")
+            case .failed(let k, let code): return tr("writing \(k) refused (code \(code)), root required?", "écriture de \(k) refusée (code \(code)) — root requis ?")
             }
         }
     }
