@@ -1,28 +1,112 @@
-import BriseCore
-import Charts
 import SwiftUI
 
+enum Page: String, Identifiable {
+    case temperatures, fans, system, battery, controls
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .temperatures: "Températures"
+        case .fans: "Ventilateurs"
+        case .system: "Système"
+        case .battery: "Batterie"
+        case .controls: "Contrôles"
+        }
+    }
+}
+
+/// Root of the menu bar window: a home screen of tiles, each opening a detail page.
 struct PanelView: View {
     @Environment(Monitor.self) private var monitor
+    @State var page: Page?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
-            TemperatureCard()
-            FansCard()
-            SystemCard()
-            ProcessesCard()
-            ActionsCard()
-            if let error = monitor.lastError {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 12) {
+            if let page {
+                DetailHeader(title: page.title) { withAnimation(.snappy) { self.page = nil } }
+                Group {
+                    switch page {
+                    case .temperatures: TemperatureCard(expanded: true)
+                    case .fans: FansCard(); AutomationsCard()
+                    case .system: SystemCard(); ProcessesCard()
+                    case .battery: BatteryCard()
+                    case .controls: ControlsCard()
+                    }
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            } else {
+                HomeView(open: { p in withAnimation(.snappy) { page = p } })
+                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
-            footer
+            StatusLine()
         }
-        .padding(16)
-        .frame(width: 340)
+        .padding(14)
+        .frame(width: 360)
+    }
+}
+
+// MARK: - Home
+
+private struct HomeView: View {
+    @Environment(Monitor.self) private var monitor
+    let open: (Page) -> Void
+
+    private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            header
+            CommandBarView(compact: true)
+            LazyVGrid(columns: columns, spacing: 10) {
+                Tile(icon: "thermometer.medium", title: "Températures",
+                     value: monitor.cpuTemp.map { "\(Int($0.rounded()))°" } ?? "—",
+                     detail: monitor.gpuTemp.map { "GPU \(Int($0.rounded()))°" } ?? "CPU",
+                     tint: tempColor(monitor.cpuTemp)) { open(.temperatures) }
+
+                Tile(icon: monitor.fansForced ? "fan.fill" : "fan", title: "Ventilateurs",
+                     value: monitor.fans.first.map { "\(Int($0.current))" } ?? "—",
+                     detail: fanDetail, tint: monitor.fansForced ? .orange : .blue,
+                     active: monitor.fansForced) { open(.fans) }
+
+                Tile(icon: "power", title: "Capot fermé",
+                     value: monitor.lidClosedAwake ? "Allumé" : "Veille",
+                     detail: monitor.lidClosedAwake ? "Le Mac continue de tourner" : "Comportement normal",
+                     tint: .green, active: monitor.lidClosedAwake, isToggle: true) {
+                    if monitor.helperInstalled { monitor.setLidClosedAwake(!monitor.lidClosedAwake) }
+                    else { monitor.installHelper(); if monitor.helperInstalled { monitor.setLidClosedAwake(true) } }
+                }
+                .help("Empêche la mise en veille même capot fermé : un agent IA, un rendu ou un téléchargement continue.")
+
+                Tile(icon: monitor.keepAwake ? "cup.and.saucer.fill" : "cup.and.saucer", title: "Éveillé",
+                     value: monitor.keepAwake ? "Actif" : "Off",
+                     detail: awakeDetail, tint: .brown, active: monitor.keepAwake, isToggle: true) {
+                    monitor.setKeepAwake(!monitor.keepAwake)
+                }
+                .contextMenu {
+                    ForEach([30, 60, 120, 240], id: \.self) { m in
+                        Button("Pendant \(CommandCatalog.duration(m))") { monitor.setKeepAwake(true, minutes: m) }
+                    }
+                    Button("Jusqu'à ce que je l'arrête") { monitor.setKeepAwake(true) }
+                }
+
+                Tile(icon: batteryIcon, title: "Batterie",
+                     value: monitor.battery.map { "\($0.percent) %" } ?? "—",
+                     detail: batteryDetail, tint: .green) { open(.battery) }
+
+                Tile(icon: "slider.horizontal.3", title: "Contrôles",
+                     value: "\(Int(monitor.volume)) %", detail: "Volume · écran · disques",
+                     tint: .purple) { open(.controls) }
+
+                Tile(icon: "cpu", title: "Système",
+                     value: monitor.cpuLoad.map { "\(Int($0 * 100)) %" } ?? "—",
+                     detail: monitor.memory.map { "RAM \(Format.bytes(Double($0.used)))" } ?? "",
+                     tint: .indigo) { open(.system) }
+
+                Tile(icon: "command", title: "Commande",
+                     value: CommandPanel.shared.shortcutLabel, detail: "Barre de commande partout",
+                     tint: .gray) { CommandPanel.shared.show() }
+            }
+            presets
+        }
     }
 
     private var header: some View {
@@ -30,285 +114,156 @@ struct PanelView: View {
             Image(systemName: "wind").font(.title3).foregroundStyle(.tint)
             Text("Brise").font(.title3.bold())
             Spacer()
-            if monitor.boostActive {
-                Text("BOOST").font(.caption2.bold())
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(.red.opacity(0.2), in: Capsule())
-                    .foregroundStyle(.red)
+            if let reason = monitor.fanOverride {
+                Label(reason, systemImage: "bolt.fill")
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .background(.orange.opacity(0.2), in: Capsule())
+                    .foregroundStyle(.orange)
             }
         }
     }
 
-    private var footer: some View {
-        HStack {
-            Toggle("Tr/min dans la barre", isOn: Binding(
-                get: { monitor.showRPMInMenuBar }, set: { monitor.showRPMInMenuBar = $0 }))
-                .toggleStyle(.checkbox).font(.caption)
-            Spacer()
-            Button("Quitter") { NSApp.terminate(nil) }
-                .keyboardShortcut("q")
-        }
-    }
-}
-
-// MARK: - Cards
-
-private struct Card<Content: View>: View {
-    let title: String
-    let icon: String
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: icon)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-            content
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
-    }
-}
-
-private func tempColor(_ t: Double?) -> Color {
-    guard let t else { return .secondary }
-    switch t {
-    case ..<60: return .green
-    case ..<80: return .yellow
-    case ..<92: return .orange
-    default: return .red
-    }
-}
-
-private struct TemperatureCard: View {
-    @Environment(Monitor.self) private var monitor
-    @State private var showAll = false
-
-    var body: some View {
-        Card(title: "Températures", icon: "thermometer.medium") {
-            HStack(alignment: .firstTextBaseline, spacing: 18) {
-                bigValue("CPU", monitor.cpuTemp)
-                bigValue("GPU", monitor.gpuTemp)
-                Spacer()
-            }
-            if monitor.history.count > 2 {
-                Chart(monitor.history) { point in
-                    AreaMark(x: .value("t", point.date),
-                             yStart: .value("min", yDomain.lowerBound),
-                             yEnd: .value("°C", point.value))
-                        .foregroundStyle(tempColor(monitor.cpuTemp).opacity(0.18).gradient)
-                    LineMark(x: .value("t", point.date), y: .value("°C", point.value))
-                        .foregroundStyle(tempColor(monitor.cpuTemp))
-                        .interpolationMethod(.monotone)
-                }
-                .chartXAxis(.hidden)
-                .chartYAxis { AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) }
-                .chartYScale(domain: yDomain)
-                .chartPlotStyle { $0.clipped() }
-                .frame(height: 60)
-            }
-            DisclosureGroup("Tous les capteurs (\(monitor.sensors.count))", isExpanded: $showAll) {
-                ScrollView {
-                    VStack(spacing: 3) {
-                        ForEach(monitor.sensors.sorted { $0.value > $1.value }) { s in
-                            HStack {
-                                Text(s.name).lineLimit(1)
-                                Spacer()
-                                Text("\(Int(s.value.rounded()))°").monospacedDigit().foregroundStyle(tempColor(s.value))
-                            }
-                            .font(.caption)
-                        }
-                    }
-                }
-                .frame(maxHeight: 160)
-            }
-            .font(.caption)
-        }
-    }
-
-    private var yDomain: ClosedRange<Double> {
-        let values = monitor.history.map(\.value)
-        let lo = (values.min() ?? 30) - 3, hi = (values.max() ?? 90) + 3
-        return lo...max(hi, lo + 10)
-    }
-
-    private func bigValue(_ label: String, _ value: Double?) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(label).font(.caption2).foregroundStyle(.secondary)
-            Text(value.map { "\(Int($0.rounded()))°" } ?? "—")
-                .font(.system(size: 30, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(tempColor(value))
-                .contentTransition(.numericText())
-        }
-    }
-}
-
-private struct FansCard: View {
-    @Environment(Monitor.self) private var monitor
-
-    var body: some View {
-        @Bindable var monitor = monitor
-        Card(title: "Ventilateurs", icon: "fan") {
-            ForEach(monitor.fans) { fan in
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack {
-                        Text(monitor.fans.count == 2 ? (fan.id == 0 ? "Gauche" : "Droite") : "Ventilo \(fan.id + 1)")
-                        Spacer()
-                        Text("\(Int(fan.current)) tr/min").monospacedDigit()
-                    }
-                    .font(.callout)
-                    ProgressView(value: fan.level).tint(fan.forced ? .orange : .accentColor)
-                }
-            }
-            if monitor.helperInstalled {
-                Picker("Mode", selection: $monitor.fanMode) {
-                    ForEach(FanMode.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                if monitor.fanMode == .custom {
-                    Slider(value: $monitor.customLevel, in: 0...1) { editing in
-                        if !editing { monitor.applyCustomLevel() }
-                    }
-                    if let fan = monitor.fans.first {
-                        Text("Cible : \(monitor.customRPM(for: fan)) tr/min")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                SwitchRow("Boost auto au-delà de \(Int(monitor.boostThreshold))°C", isOn: $monitor.autoBoost)
-                if monitor.autoBoost {
-                    Slider(value: $monitor.boostThreshold, in: 70...100, step: 1)
-                }
-            } else {
-                Button {
-                    monitor.installHelper()
-                } label: {
-                    Label("Activer le contrôle des ventilos", systemImage: "lock.open")
+    private var presets: some View {
+        HStack(spacing: 8) {
+            ForEach(Preset.allCases) { preset in
+                Button { monitor.apply(preset) } label: {
+                    Label(preset.label, systemImage: preset.icon)
+                        .font(.callout)
                         .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(monitor.activePreset == preset ? Color.accentColor.opacity(0.25) : Color.primary.opacity(0.06),
+                                    in: Capsule())
                 }
-                .controlSize(.large)
-                Text("Demande ton mot de passe une seule fois.")
-                    .font(.caption2).foregroundStyle(.secondary)
+                .buttonStyle(.plain)
             }
         }
+    }
+
+    private var fanDetail: String {
+        if let reason = monitor.fanOverride { return "À fond · \(reason)" }
+        return "tr/min · \(monitor.fanMode.label)"
+    }
+
+    private var awakeDetail: String {
+        guard monitor.keepAwake else { return "Clic droit : durée" }
+        guard let until = monitor.keepAwakeUntil else { return "Jusqu'à arrêt" }
+        return "Jusqu'à \(until.formatted(date: .omitted, time: .shortened))"
+    }
+
+    private var batteryIcon: String {
+        guard let b = monitor.battery else { return "battery.100" }
+        if b.charging { return "battery.100.bolt" }
+        return b.percent > 75 ? "battery.100" : b.percent > 50 ? "battery.75" : b.percent > 25 ? "battery.50" : "battery.25"
+    }
+
+    private var batteryDetail: String {
+        if let limit = monitor.chargeLimit, limit < 100 { return "Limite \(limit) %" }
+        if let h = monitor.battery?.health { return "Santé \(Int(h * 100)) %" }
+        return ""
     }
 }
 
-private struct SystemCard: View {
-    @Environment(Monitor.self) private var monitor
-
-    var body: some View {
-        Card(title: "Système", icon: "cpu") {
-            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 6) {
-                row("Processeur", value: monitor.cpuLoad.map { "\(Int($0 * 100)) %" }, fraction: monitor.cpuLoad)
-                row("Mémoire",
-                    value: monitor.memory.map { "\(Format.bytes(Double($0.used))) / \(Format.bytes(Double($0.total)))" },
-                    fraction: monitor.memory?.fraction)
-                GridRow {
-                    Text("Réseau").foregroundStyle(.secondary)
-                    Text(monitor.network.map { "↓ \(Format.rate($0.down))   ↑ \(Format.rate($0.up))" } ?? "—")
-                        .monospacedDigit()
-                        .gridCellColumns(2)
-                }
-                if let b = monitor.battery {
-                    GridRow {
-                        Text("Batterie").foregroundStyle(.secondary)
-                        Text(batteryText(b)).gridCellColumns(2)
-                    }
-                }
-            }
-            .font(.callout)
-        }
-    }
-
-    private func row(_ label: String, value: String?, fraction: Double?) -> some View {
-        GridRow {
-            Text(label).foregroundStyle(.secondary)
-            ProgressView(value: fraction ?? 0).frame(width: 70)
-            Text(value ?? "—").monospacedDigit().lineLimit(1)
-        }
-    }
-
-    private func batteryText(_ b: BatteryInfo) -> String {
-        var text = "\(b.percent) %"
-        if b.charging { text += " ⚡︎" } else if b.pluggedIn { text += " (secteur)" }
-        if let h = b.health { text += " · santé \(Int(h * 100)) %" }
-        if let c = b.cycles { text += " · \(c) cycles" }
-        return text
-    }
-}
-
-private struct ProcessesCard: View {
-    @Environment(Monitor.self) private var monitor
-    @State private var hovered: Int32?
-
-    var body: some View {
-        Card(title: "Qui chauffe ?", icon: "flame") {
-            ForEach(monitor.topProcesses) { p in
-                HStack {
-                    Text(p.name).lineLimit(1)
-                    Spacer()
-                    Text(String(format: "%.0f %%", p.cpu)).monospacedDigit().foregroundStyle(.secondary)
-                    Button {
-                        monitor.terminate(p)
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                    .opacity(hovered == p.pid ? 1 : 0)
-                    .help("Quitter \(p.name)")
-                }
-                .font(.callout)
-                .contentShape(Rectangle())
-                .onHover { hovered = $0 ? p.pid : (hovered == p.pid ? nil : hovered) }
-            }
-        }
-    }
-}
-
-private struct ActionsCard: View {
-    @Environment(Monitor.self) private var monitor
-
-    var body: some View {
-        @Bindable var monitor = monitor
-        Card(title: "Raccourcis", icon: "bolt") {
-            SwitchRow("Garder le Mac éveillé", isOn: $monitor.keepAwake)
-            if monitor.helperInstalled {
-                SwitchRow("Mode économie d'énergie", isOn: Binding(
-                    get: { monitor.lowPowerMode }, set: { monitor.setLowPowerMode($0) }))
-            }
-            SwitchRow("Lancer au démarrage", isOn: Binding(
-                get: { monitor.launchAtLogin }, set: { monitor.setLaunchAtLogin($0) }))
-            if monitor.helperInstalled {
-                Button {
-                    monitor.purgeMemory()
-                } label: {
-                    Label("Libérer la mémoire inactive", systemImage: "memorychip")
-                }
-            }
-        }
-    }
-}
-
-private struct SwitchRow: View {
+/// A Control-Center-style square. Toggles light up when active; others open a page.
+private struct Tile: View {
+    let icon: String
     let title: String
-    @Binding var isOn: Bool
+    let value: String
+    let detail: String
+    var tint: Color = .accentColor
+    var active = false
+    var isToggle = false
+    let action: () -> Void
+    @State private var hovering = false
 
-    init(_ title: String, isOn: Binding<Bool>) {
-        self.title = title
-        self._isOn = isOn
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 30, height: 30)
+                        .background(active ? tint : tint.opacity(0.15), in: Circle())
+                        .foregroundStyle(active ? .white : tint)
+                    Spacer()
+                    Image(systemName: isToggle ? "power" : "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.tertiary)
+                        .opacity(isToggle ? 0 : 1)
+                }
+                Text(value)
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .contentTransition(.numericText())
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title).font(.callout.weight(.medium))
+                    Text(detail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
+            .padding(11)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(active ? tint.opacity(0.16) : Color.primary.opacity(hovering ? 0.09 : 0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(active ? tint.opacity(0.5) : .clear, lineWidth: 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .animation(.easeOut(duration: 0.15), value: active)
     }
+}
+
+private struct DetailHeader: View {
+    let title: String
+    let back: () -> Void
 
     var body: some View {
         HStack {
-            Text(title)
+            Button(action: back) {
+                Label("Accueil", systemImage: "chevron.left").font(.callout)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.tint)
+            .keyboardShortcut(.escape, modifiers: [])
             Spacer()
-            Toggle(title, isOn: $isOn).labelsHidden().toggleStyle(.switch).controlSize(.mini)
+            Text(title).font(.headline)
+            Spacer()
+            Color.clear.frame(width: 60, height: 1)
         }
-        .font(.callout)
+    }
+}
+
+/// Error or confirmation line + quit, shown under every page.
+private struct StatusLine: View {
+    @Environment(Monitor.self) private var monitor
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let error = monitor.lastError {
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if let toast = monitor.toast {
+                Label(toast, systemImage: "checkmark.circle.fill")
+                    .font(.caption).foregroundStyle(.green)
+                    .task(id: toast) {
+                        try? await Task.sleep(for: .seconds(3))
+                        if monitor.toast == toast { monitor.toast = nil }
+                    }
+            }
+            HStack {
+                Spacer()
+                Button("Quitter Brise") { NSApp.terminate(nil) }
+                    .keyboardShortcut("q")
+                    .controlSize(.small)
+            }
+        }
     }
 }

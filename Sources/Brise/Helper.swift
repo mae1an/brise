@@ -3,12 +3,17 @@ import Foundation
 
 /// Installs and talks to `brise-helper`, the small setuid-root tool that writes to the SMC.
 enum Helper {
-    static let expectedVersion = "1"
+    static let expectedVersion = "2"
     static let installDir = "/Library/Application Support/Brise"
     static let installedPath = installDir + "/brise-helper"
 
     static var bundledPath: String? {
         Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent("brise-helper").path
+    }
+
+    /// Installed but from an older Brise version (needs a one-click update).
+    static var isOutdated: Bool {
+        FileManager.default.fileExists(atPath: installedPath) && !isInstalled
     }
 
     static var isInstalled: Bool {

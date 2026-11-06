@@ -12,7 +12,7 @@ struct BriseApp: App {
                 .environment(monitor)
         } label: {
             HStack(spacing: 3) {
-                Image(systemName: monitor.boostActive || monitor.fanMode != .auto ? "fan.fill" : "thermometer.medium")
+                Image(systemName: monitor.fansForced ? "fan.fill" : monitor.lidClosedAwake ? "power.circle.fill" : "thermometer.medium")
                 Text(monitor.menuBarTitle).monospacedDigit()
             }
         }
@@ -24,10 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var previewWindow: NSWindow?
 
     /// `Brise --preview` also shows the panel in a regular window (handy for screenshots).
+    /// `--page fans` opens a detail page in the preview window.
     func applicationDidFinishLaunching(_ notification: Notification) {
-        guard CommandLine.arguments.contains("--preview") else { return }
+        MainActor.assumeIsolated { CommandPanel.shared.registerHotKey() }
+        let args = CommandLine.arguments
+        guard args.contains("--preview") else { return }
         MainActor.assumeIsolated {
-            let host = NSHostingView(rootView: PanelView().environment(Monitor.shared))
+            let page = args.firstIndex(of: "--page").flatMap { $0 + 1 < args.count ? Page(rawValue: args[$0 + 1]) : nil }
+            let host = NSHostingView(rootView: PanelView(page: page).environment(Monitor.shared))
             let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable],
                                   backing: .buffered, defer: false)
             window.title = "Brise"
@@ -54,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        MainActor.assumeIsolated { Monitor.shared.restoreAutomaticFans() }
+        MainActor.assumeIsolated { Monitor.shared.restoreDefaultsOnQuit() }
         return .terminateNow
     }
 }
