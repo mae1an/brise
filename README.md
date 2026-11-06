@@ -29,6 +29,10 @@ My MacBook Pro 16" (2019, i9) runs hot. Existing tools show temperatures *or* co
 - 🔋 **Battery** — charge, health, cycles, temperature, and a **charge limit** (stop at 80 %) to slow down battery wear on a Mac that lives on the charger.
 - 🎛️ **Controls** — volume, brightness, dark mode, lock, display off, eject all disks, empty the trash.
 - 🎬 **Presets** — *Render* (fans max + awake), *Silent* (Low Power Mode), *Normal* (everything back to default).
+- 🎚️ **Touch Bar widget** (MacBook Pro with Touch Bar) — a heat-coloured CPU temperature lives in the Control Strip. Tap it for the full Brise bar: heat gauge, live temperature curve, a fan that actually spins at a speed matching the rpm (tap for Auto ⇄ Max), glowing *Lid closed* / *Awake* switches and the *Render* / *Silent* presets.
+
+  <img src="docs/touchbar.png" alt="Brise on the Touch Bar">
+
 - ⌨️ **Command bar** — press **⌥Space** anywhere and type what you want: `fans max`, `awake 1h`, `volume 30`, `lid closed`, `battery 80`, `render mode`, `open Figma`, `quit Chrome`… It understands English and French whatever the UI language. ↑/↓ to pick, ↩ to run. Offline, instant, no AI needed.
 - 🔥 **Who's heating?** — top CPU processes with one-click quit.
 - 🛟 **Safe by default** — quitting Brise hands fans and sleep back to macOS.
@@ -52,7 +56,7 @@ Brise follows your Mac's language: **English** by default, **French** when Frenc
 - **`CSMC`** — a ~150-line C client for the AppleSMC kernel driver (`IOConnectCallStructMethod`), decoding the SMC's fixed-point types (`sp78`, `fpe2`, `flt `…).
 - **`BriseCore`** — Swift wrappers: sensor discovery (enumerates every SMC key once, keeps the plausible temperature ones), fan reads and writes, with Intel (`F0Md` / `FS!`) and Apple Silicon (`Ftst`) code paths.
 - **`brise-helper`** — writing to the SMC requires root. Instead of running the whole app as root, a tiny CLI is installed once as setuid root (one admin password prompt). It only accepts a fixed whitelist of commands (`set`, `max`, `auto`, `battery-limit`, `nosleep`, `purge`, `lowpower`) and clamps every value to safe limits.
-- **`Brise`** — the SwiftUI app: `MenuBarExtra`, Swift Charts, Observation, Mach host statistics for CPU/RAM, `getifaddrs` for network, IOKit power sources for the battery, `IOPMAssertion` for keep-awake, `SMAppService` for launch at login, a Carbon global hot key and a borderless `NSPanel` for the command bar, `NSWorkspace` notifications for app automations.
+- **`Brise`** — the SwiftUI app: `MenuBarExtra`, Swift Charts, Observation, Mach host statistics for CPU/RAM, `getifaddrs` for network, IOKit power sources for the battery, `IOPMAssertion` for keep-awake, `SMAppService` for launch at login, a Carbon global hot key and a borderless `NSPanel` for the command bar, custom-drawn `NSTouchBar` items placed in the Control Strip through the private `DFRFoundation` API (looked up at runtime, disabled when missing), `NSWorkspace` notifications for app automations.
 
 ## Install
 

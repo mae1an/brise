@@ -26,7 +26,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `Brise --preview` also shows the panel in a regular window (handy for screenshots).
     /// `--page fans` opens a detail page in the preview window.
     func applicationDidFinishLaunching(_ notification: Notification) {
-        MainActor.assumeIsolated { CommandPanel.shared.registerHotKey() }
+        MainActor.assumeIsolated {
+            CommandPanel.shared.registerHotKey()
+            if Monitor.shared.touchBarWidget { TouchBarController.shared.install() }
+            if CommandLine.arguments.contains("--touchbar") { TouchBarController.shared.showBar() }
+        }
         let args = CommandLine.arguments
         guard args.contains("--preview") else { return }
         MainActor.assumeIsolated {
@@ -58,7 +62,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        MainActor.assumeIsolated { Monitor.shared.restoreDefaultsOnQuit() }
+        MainActor.assumeIsolated {
+            Monitor.shared.restoreDefaultsOnQuit()
+            TouchBarController.shared.uninstall()
+        }
         return .terminateNow
     }
 }

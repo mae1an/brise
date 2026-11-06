@@ -94,6 +94,12 @@ final class Monitor {
 
     var lowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
     var launchAtLogin = SMAppService.mainApp.status == .enabled
+    var touchBarWidget: Bool = Settings.bool("touchBarWidget", true) {
+        didSet {
+            Settings.set("touchBarWidget", touchBarWidget)
+            touchBarWidget ? TouchBarController.shared.install() : TouchBarController.shared.uninstall()
+        }
+    }
 
     // App automations
     let heavyApps = HeavyApp.installed()
@@ -161,6 +167,7 @@ final class Monitor {
         if let until = keepAwakeUntil, until <= .now { setKeepAwake(false) }
         tickCount += 1
         checkOverrides()
+        TouchBarController.shared.update()
     }
 
     var menuBarTitle: String {

@@ -362,6 +362,10 @@ struct ControlsCard: View {
         Card(title: "Brise", icon: "wind") {
             SwitchRow(tr("Launch at login", "Lancer au démarrage"), isOn: Binding(
                 get: { monitor.launchAtLogin }, set: { monitor.setLaunchAtLogin($0) }))
+            if TouchBarController.shared.isAvailable {
+                SwitchRow(tr("Touch Bar widget", "Widget Touch Bar"), isOn: Binding(
+                    get: { monitor.touchBarWidget }, set: { monitor.touchBarWidget = $0 }))
+            }
         }
         .onAppear { monitor.refreshControls() }
     }
