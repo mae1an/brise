@@ -28,8 +28,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainActor.assumeIsolated {
             CommandPanel.shared.registerHotKey()
+            handleTerminationSignals()
             if Monitor.shared.touchBarWidget { TouchBarController.shared.install() }
-            if CommandLine.arguments.contains("--touchbar") { TouchBarController.shared.showBar() }
+            if CommandLine.arguments.contains("--touchbar") {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { TouchBarController.shared.showBar() }
+            }
         }
         let args = CommandLine.arguments
         guard args.contains("--preview") else { return }
@@ -58,6 +61,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
             }
+        }
+    }
+
+    private var signalSources: [DispatchSourceSignal] = []
+
+    /// `kill` / logout: quit properly so fans, sleep and the Touch Bar are restored.
+    @MainActor private func handleTerminationSignals() {
+        for sig in [SIGTERM, SIGINT, SIGHUP] {
+            signal(sig, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)
+            source.setEventHandler { NSApp.terminate(nil) }
+            source.resume()
+            signalSources.append(source)
         }
     }
 

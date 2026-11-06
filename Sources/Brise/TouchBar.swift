@@ -26,6 +26,7 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
     private var trayButton: TBTrayButton?
     private var bar: NSTouchBar?
     private var isShowingBar = false
+    private var updates = 0
 
     private var gauge: TBHeatGauge?
     private var curve: TBSparkline?
@@ -59,8 +60,15 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         item.view = button
         trayItem = item
         trayButton = button
+        // Reset any stale entry left by a previous run that was killed, then add ours.
+        setControlStripPresence(false)
         _ = (NSTouchBarItem.self as AnyObject).perform(NSSelectorFromString("addSystemTrayItem:"), with: item)
         setControlStripPresence(true)
+        // The Touch Bar server sometimes misses the first call right after launch.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, self.trayItem != nil else { return }
+            self.setControlStripPresence(true)
+        }
         update()
     }
 
@@ -195,6 +203,10 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
     /// Called by the monitor every refresh.
     func update() {
         guard trayItem != nil else { return }
+        // Self-heal: the Touch Bar server sometimes drops our Control Strip entry
+        // (another app restarting it, a quick relaunch). Re-asserting is cheap.
+        updates += 1
+        if updates % 5 == 0, !isShowingBar { setControlStripPresence(true) }
         let m = Monitor.shared
         trayButton?.temp = m.cpuTemp
         trayButton?.fansForced = m.fansForced

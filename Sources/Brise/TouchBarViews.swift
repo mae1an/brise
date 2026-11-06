@@ -221,7 +221,8 @@ final class TBFanButton: TBDrawnButton {
     }
 }
 
-/// On/off capsule: dim outline when off, glowing gradient when on.
+/// On/off capsule. Off: readable white label + tinted outline. On: glowing tinted fill.
+/// Unavailable (needs admin mode): padlock, dimmed.
 final class TBTogglePill: TBDrawnButton {
     var symbol = "power"
     var label = ""
@@ -230,28 +231,31 @@ final class TBTogglePill: TBDrawnButton {
     var enabledLook = true { didSet { needsDisplay = true } }
 
     override func drawContent(_ rect: NSRect) {
-        let shape = TBStyle.capsule(rect.insetBy(dx: 0.75, dy: 0.75))
-        if isOn {
-            NSGradient(starting: tint.withAlphaComponent(0.95), ending: tint.blended(withFraction: 0.35, of: .black)?.withAlphaComponent(0.9) ?? tint)?
-                .draw(in: shape, angle: -90)
-        } else {
-            TBStyle.idle.setFill()
+        let shape = TBStyle.capsule(rect.insetBy(dx: 1, dy: 1))
+        if !enabledLook {
+            NSColor(white: 1, alpha: 0.06).setFill()
             shape.fill()
-            NSColor(white: 1, alpha: 0.12).setStroke()
+        } else if isOn {
+            NSGradient(starting: tint, ending: tint.blended(withFraction: 0.3, of: .black) ?? tint)?.draw(in: shape, angle: -90)
+            NSColor(white: 1, alpha: 0.35).setStroke()
             shape.lineWidth = 1
             shape.stroke()
+        } else {
+            tint.withAlphaComponent(0.14).setFill()
+            shape.fill()
+            tint.withAlphaComponent(0.8).setStroke()
+            shape.lineWidth = 1.2
+            shape.stroke()
         }
-        let fg = isOn ? NSColor.white : TBStyle.dim
+        let iconName = enabledLook ? symbol : "lock.fill"
+        let iconColor: NSColor = !enabledLook ? TBStyle.dim : isOn ? .white : tint
+        let textColor: NSColor = !enabledLook ? TBStyle.dim : .white
         let iconRect = NSRect(x: rect.minX + 10, y: rect.midY - 8, width: 16, height: 16)
-        if let icon = TBStyle.symbol(symbol, size: 13, color: isOn ? .white : tint) {
+        if let icon = TBStyle.symbol(iconName, size: 13, color: iconColor) {
             icon.draw(in: iconRect.insetBy(dx: (16 - icon.size.width) / 2, dy: (16 - icon.size.height) / 2))
         }
         TBStyle.draw(label, in: NSRect(x: iconRect.maxX + 6, y: rect.minY, width: rect.width - iconRect.maxX - 12, height: rect.height),
-                     font: .systemFont(ofSize: 12, weight: .semibold), color: fg, align: .left)
-        if !enabledLook {
-            NSColor(white: 0, alpha: 0.5).setFill()
-            shape.fill()
-        }
+                     font: .systemFont(ofSize: 12, weight: isOn ? .bold : .semibold), color: textColor, align: .left)
     }
 }
 
