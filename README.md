@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🌬️ Brise
+<img src="docs/logo.png" width="128" alt="Brise logo">
+
+# Brise
 
 **A native macOS menu bar assistant: temperatures, fans, battery, power and quick Mac controls — one click or one sentence away.**
 
@@ -66,6 +68,7 @@ Requires macOS 14+ and Xcode command line tools.
 git clone https://github.com/mae1an/brise.git
 cd brise
 ./scripts/build-app.sh          # universal binary in build/Brise.app
+# swift scripts/make-icon.swift icon.png   # re-render the app icon
 cp -R build/Brise.app /Applications/
 open /Applications/Brise.app
 ```
