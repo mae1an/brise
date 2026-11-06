@@ -20,28 +20,37 @@ struct PanelView: View {
     @Environment(Monitor.self) private var monitor
     @State var page: Page?
 
+    /// The menu bar window keeps one fixed size: when a MenuBarExtra window changes height,
+    /// macOS can push its top under the menu bar and hide the back button.
+    static let size = CGSize(width: 360, height: 690)
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if let page {
-                DetailHeader(title: page.title) { withAnimation(.snappy) { self.page = nil } }
-                Group {
-                    switch page {
-                    case .temperatures: TemperatureCard(expanded: true)
-                    case .fans: FansCard(); AutomationsCard()
-                    case .system: SystemCard(); ProcessesCard()
-                    case .battery: BatteryCard()
-                    case .controls: ControlsCard()
+                DetailHeader(title: page.title) { self.page = nil }
+            }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let page {
+                        switch page {
+                        case .temperatures: TemperatureCard(expanded: true)
+                        case .fans: FansCard(); AutomationsCard()
+                        case .system: SystemCard(); ProcessesCard()
+                        case .battery: BatteryCard()
+                        case .controls: ControlsCard()
+                        }
+                    } else {
+                        HomeView(open: { page = $0 })
                     }
                 }
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-            } else {
-                HomeView(open: { p in withAnimation(.snappy) { page = p } })
-                    .transition(.move(edge: .leading).combined(with: .opacity))
+                .padding(.bottom, 4)
             }
+            .scrollIndicators(.automatic)
+            .id(page)   // each page starts scrolled to the top
             StatusLine()
         }
         .padding(14)
-        .frame(width: 360)
+        .frame(width: Self.size.width, height: Self.size.height, alignment: .top)
     }
 }
 

@@ -100,19 +100,16 @@ struct TemperatureCard: View {
                 .frame(height: expanded ? 90 : 60)
             }
             DisclosureGroup(tr("All sensors (\(monitor.sensors.count))", "Tous les capteurs (\(monitor.sensors.count))"), isExpanded: $showAll) {
-                ScrollView {
-                    VStack(spacing: 3) {
-                        ForEach(monitor.sensors.sorted { $0.value > $1.value }) { s in
-                            HStack {
-                                Text(s.name).lineLimit(1)
-                                Spacer()
-                                Text("\(Int(s.value.rounded()))°").monospacedDigit().foregroundStyle(tempColor(s.value))
-                            }
-                            .font(.caption)
+                VStack(spacing: 3) {
+                    ForEach(monitor.sensors.sorted { $0.value > $1.value }) { s in
+                        HStack {
+                            Text(s.name).lineLimit(1)
+                            Spacer()
+                            Text("\(Int(s.value.rounded()))°").monospacedDigit().foregroundStyle(tempColor(s.value))
                         }
+                        .font(.caption)
                     }
                 }
-                .frame(maxHeight: 220)
             }
             .font(.caption)
         }
