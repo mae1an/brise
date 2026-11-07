@@ -72,6 +72,16 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         update()
     }
 
+    /// Re-registers our button in the Control Strip. The collapsed strip has a single slot for
+    /// extra items and the most recently registered one wins it — e.g. the media (Now Playing)
+    /// button takes it from Brise whenever audio or video starts. Re-registering an item that is
+    /// already shown changes nothing, so this is safe to call regularly.
+    private func reclaimSlot() {
+        guard let item = trayItem, !isShowingBar else { return }
+        _ = (NSTouchBarItem.self as AnyObject).perform(NSSelectorFromString("addSystemTrayItem:"), with: item)
+        setControlStripPresence(true)
+    }
+
     func uninstall() {
         guard let item = trayItem else { return }
         dismissBar()
@@ -119,6 +129,7 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         _ = (NSTouchBar.self as AnyObject).perform(NSSelectorFromString("minimizeSystemModalTouchBar:"), with: bar)
         isShowingBar = false
         fan?.stopSpinning()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.reclaimSlot() }
     }
 
     func touchBar(_ touchBar: NSTouchBar, makeItemForIdentifier identifier: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
@@ -203,10 +214,9 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
     /// Called by the monitor every refresh.
     func update() {
         guard trayItem != nil else { return }
-        // Self-heal: the Touch Bar server sometimes drops our Control Strip entry
-        // (another app restarting it, a quick relaunch). Re-asserting is cheap.
+        // Every ~6 s, take the Control Strip slot back if another item (media controls) took it.
         updates += 1
-        if updates % 5 == 0, !isShowingBar { setControlStripPresence(true) }
+        if updates % 3 == 0 { reclaimSlot() }
         let m = Monitor.shared
         trayButton?.temp = m.cpuTemp
         trayButton?.fansForced = m.fansForced
